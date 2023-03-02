@@ -1,0 +1,7 @@
+beautifulsoup4
+numpy
+opencv-python
+Pillow
+pytesseract
+requests
+urllib3
