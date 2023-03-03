@@ -112,6 +112,13 @@ async def menu(interaction):
     dishes = get_itu_dishes() + get_kua_dishes()    
     # Get the dish for the current day of the week
     day = datetime.datetime.today().weekday()
+    
+    #if it is after 14:00, get the menu for the next day
+    if datetime.datetime.now().hour >= 14:
+        day += 1
+        if day > 4:
+            day = 0
+            
     msg = [u"**Today's Menu** 👨‍🍳"]
     for title, menu in dishes:
         msg.append(f"**{title}**\n{menu[day]}")
@@ -123,4 +130,4 @@ async def on_ready():
     await tree.sync(guild=discord.Object(id=576126976251920386))
     print("Ready!")
 
-client.run("token")
+client.run("MTA4MDg0MDUzMjU3MTQ1NTQ4OA.GZ9C8r.rTJg8D7pouPRzP2x8YIbhQxRsicGA1ze6-FlgE")
