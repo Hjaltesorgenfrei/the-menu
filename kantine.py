@@ -92,11 +92,13 @@ def get_kua_dishes():
                 content[index] += '.'
             dish.append(content[index])
             index += 1
-
+        menu.append(" ".join(dish).strip())
 
         menus.append((title, menu))
 
     return menus
+
+
 
 # This example requires the 'message_content' intent.
 
@@ -118,7 +120,7 @@ async def menu(interaction):
         day += 1
         if day > 4:
             day = 0
-            
+
     msg = [u"**Today's Menu** 👨‍🍳"]
     for title, menu in dishes:
         msg.append(f"**{title}**\n{menu[day]}")
@@ -130,4 +132,4 @@ async def on_ready():
     await tree.sync(guild=discord.Object(id=576126976251920386))
     print("Ready!")
 
-client.run("MTA4MDg0MDUzMjU3MTQ1NTQ4OA.GZ9C8r.rTJg8D7pouPRzP2x8YIbhQxRsicGA1ze6-FlgE")
+client.run("token")
