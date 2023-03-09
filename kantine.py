@@ -130,6 +130,7 @@ async def get_map(interaction):
 @tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA", guild=discord.Object(id=576126976251920386)) 
 async def get_menu(interaction):
     # defer the response
+    await interaction.response.defer()
     dishes = get_itu_dishes() + get_kua_dishes()    
     # Get the dish for the current day of the week
     day = datetime.datetime.today().weekday()
@@ -143,6 +144,8 @@ async def get_menu(interaction):
     msg = [u"**Today's Menu** 👨‍🍳"]
     for title, menu in dishes:
         msg.append(f"**{title}**\n{menu[day]}")
+
+    print(msg)
     
     await interaction.followup.send("\n\n".join(msg))
 
