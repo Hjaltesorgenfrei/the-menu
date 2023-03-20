@@ -13,59 +13,69 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_itu_dishes():
-    try:
-        # Download web page
-        base = 'https://billboard.itu.dk/'
-        url = base + 'canteen-menu'
-        r = requests.get(url)
-        r.raise_for_status()
+    urls = ['https://billboard.itu.dk/canteen-menu', 'https://itustudent.itu.dk/Campus-Life/Student-Life/Canteen-Menu']
+    for url in urls:
+        image_urls = []
+        try:
+            # Download web page
+            r = requests.get(url)
+            r.raise_for_status()
 
-        # Extract div with class canteen
-        soup = BeautifulSoup(r.text, 'html.parser')
-        canteen = soup.find('div', class_='canteen')
+            # Extract div with class canteen
+            soup = BeautifulSoup(r.text, 'html.parser')
+            canteen = soup.find('div', class_='canteen')
+            if canteen is None:
+                canteen = soup.find('div', id='Canteenmenu')
+            if canteen is None:
+                continue
 
-        # Get first image in div
-        image = canteen.find('img')
+            # Get first image in div
+            for image in canteen.find_all('img'):
+                base = url[:url.rfind('/') + 1]
+                image_url = urllib.parse.urljoin(base, image['src'])  
+                # If contains Infoscreen, then it is the image we want
+                if 'infoscreen' in image_url.lower():
+                    image_urls.append(image_url)
 
-        image_url = urllib.parse.urljoin(base, image['src'])  
-        r = requests.get(image_url)
-        r.raise_for_status()
 
-        arr = np.asarray(bytearray(r.content), dtype=np.uint8)
-        img = cv2.imdecode(arr, -1) # 'Load it as it is'
+            for image_url in image_urls:
+                r = requests.get(image_url)
+                r.raise_for_status()
+                arr = np.asarray(bytearray(r.content), dtype=np.uint8)
+                img = cv2.imdecode(arr, -1) # 'Load it as it is'
 
-        # crop image
-        week = img[140:200, 170:380]
-        week_number = pytesseract.image_to_string(week, lang='eng')
-        # remover everything that is not numbers
-        week_number = ''.join([x for x in week_number if x.isdigit()])
+                # crop image
+                week = img[140:200, 170:380]
+                week_number = pytesseract.image_to_string(week, lang='eng')
+                # remover everything that is not numbers
+                week_number = ''.join([x for x in week_number if x.isdigit()])
 
-        # Check if week number is the same as the current week number
-        if int(week_number) != datetime.datetime.today().isocalendar()[1]:
-            return [("ITU", ["No menu available, we are still showing last week :)"] * 5)]
-        
-        start_x = [350, 670, 955, 1240, 1530]
-        width = 225
-        height = 120
-        warm_dish_y = 662
-        veggie_dish_y = 788
-        warm_dishes = []
-        veggie_dishes = []
-        for x in start_x:
-            cv2.rectangle(img, (x, warm_dish_y), (x+width, warm_dish_y + height), (0, 255, 0), 2)
-            # Extract warm dish with ocr from rectangle
-            dish = img[warm_dish_y:warm_dish_y + height, x:x+width]
-            text = pytesseract.image_to_string(dish, lang='eng')
-            warm_dishes.append(text.strip().replace('\n', ' '))
-            cv2.rectangle(img, (x, veggie_dish_y), (x+width, veggie_dish_y + height), (0, 255, 0), 2)
-            # Extract veggie dish with ocr from rectangle
-            dish = img[veggie_dish_y:veggie_dish_y + height, x:x+width]
-            veggie_dish = pytesseract.image_to_string(dish, lang='eng')
-            veggie_dishes.append(veggie_dish.strip().replace('\n', ' '))
-        return [("ITU - Warm Dishes", warm_dishes),("ITU - Warm Veggie", veggie_dishes)]
-    except Exception as e:
-        print(e)
-        return [("ITU", ["No menu available, failed in retrieving image from ITU's billboard"] * 5)]
+                # Check if week number is the same as the current week number
+                if int(week_number) != datetime.datetime.today().isocalendar()[1]:
+                    continue
+                
+                start_x = [330, 650, 935, 1220, 1510]
+                width = 245
+                height = 140
+                warm_dish_y = 662
+                veggie_dish_y = 810
+                warm_dishes = []
+                veggie_dishes = []
+                for x in start_x:
+                    cv2.rectangle(img, (x, warm_dish_y), (x+width, warm_dish_y + height), (0, 255, 0), 2)
+                    # Extract warm dish with ocr from rectangle
+                    dish = img[warm_dish_y:warm_dish_y + height, x:x+width]
+                    text = pytesseract.image_to_string(dish, lang='eng')
+                    warm_dishes.append(text.strip().replace('\n', ' '))
+                    cv2.rectangle(img, (x, veggie_dish_y), (x+width, veggie_dish_y + height), (0, 255, 0), 2)
+                    # Extract veggie dish with ocr from rectangle
+                    dish = img[veggie_dish_y:veggie_dish_y + height, x:x+width]
+                    veggie_dish = pytesseract.image_to_string(dish, lang='eng')
+                    veggie_dishes.append(veggie_dish.strip().replace('\n', ' '))
+                return [("ITU - Warm Dishes", warm_dishes),("ITU - Warm Veggie", veggie_dishes)]
+        except Exception as e:
+            print(e)
+    return [("ITU", ["No menu available, failed in retrieving image from ITU's billboard"] * 5)]
 
 def get_kua_dishes():
     # Download web page
