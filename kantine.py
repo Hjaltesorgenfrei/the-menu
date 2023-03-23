@@ -182,7 +182,7 @@ async def submit_memes(interaction, image: discord.Attachment):
         await interaction.followup.send("Something went wrong when uploading the image")
         return
     
-    await interaction.followup.send("Images uploaded successfully")
+    await interaction.followup.send("Images uploaded successfully: " + url)
 
 @client.event
 async def on_ready():
