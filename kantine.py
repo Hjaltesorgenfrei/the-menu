@@ -159,6 +159,31 @@ async def get_menu(interaction):
     
     await interaction.followup.send("\n\n".join(msg))
 
+# Make a command that takes all images in the message and sends them to the mads monster memes channel
+@tree.command(name = "submit", description = "Submit images to mads monster memes", guild=discord.Object(id=576126976251920386)) 
+async def submit_memes(interaction, image: discord.Attachment):
+    await interaction.response.defer()
+    
+    url = image.url
+    
+    # Download the image
+    r = requests.get(url)
+    r.raise_for_status()
+    # Save the image
+    imageName = image.filename
+
+    content = r.content
+    data = {'visualFile': (imageName, content, image.content_type) }
+    body = {'toptext': "", 'bottomtext':""}
+    request = requests.Request('POST',"https://api.mads.monster/Upload/Memes", files= data, data=body ).prepare()
+    s = requests.Session()
+    response = s.send(request)
+    if response.status_code != 200:
+        await interaction.followup.send("Something went wrong when uploading the image")
+        return
+    
+    await interaction.followup.send("Images uploaded successfully")
+
 @client.event
 async def on_ready():
     await tree.sync(guild=discord.Object(id=576126976251920386))
