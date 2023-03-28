@@ -6,3 +6,4 @@ pytesseract
 requests
 urllib3
 python-dotenv
+discord.py
