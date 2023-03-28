@@ -213,10 +213,11 @@ async def get_menu(interaction, day: typing.Optional[int]):
         for title, menu in image_dishes:
             msg.append(f"**{title}**")
             # send the image dish for the current day of the week as an attachment
-            arr = io.BytesIO(menu[day])
+            
             response = "\n\n".join(msg)
-            cached_responses[(week, day)] = (response, arr)
-    response, arr = cached_responses[(week, day)]
+            cached_responses[(week, day)] = (response, menu[day])
+    response, bts = cached_responses[(week, day)]
+    arr = io.BytesIO(bts)
     file = discord.File(arr, filename=f"menu.jpg")
     await interaction.followup.send(response, file=file)
 
