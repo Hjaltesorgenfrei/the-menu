@@ -197,7 +197,7 @@ async def get_menu(interaction):
     # Get the dishes from ITU's billboard
     image_dishes = get_itu_dishes()
     for title, menu in image_dishes:
-        msg.append(f"\n**{title}**")
+        msg.append(f"**{title}**")
         # send the image dish for the current day of the week as an attachment
         arr = io.BytesIO(menu[day])
         file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
