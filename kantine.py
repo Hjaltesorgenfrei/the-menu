@@ -217,7 +217,7 @@ async def get_menu(interaction, day: typing.Optional[int]):
             response = "\n\n".join(msg)
             cached_responses[(week, day)] = (response, arr)
     response, arr = cached_responses[(week, day)]
-    file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
+    file = discord.File(arr, filename=f"menu.jpg")
     await interaction.followup.send(response, file=file)
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
