@@ -9,9 +9,16 @@ import pytesseract
 import datetime
 import sys
 import os
+import re
+import io
 from dotenv import load_dotenv
 
 load_dotenv()
+
+testing = False
+
+if len(sys.argv) > 1 and sys.argv[1] == '-test':
+    testing = True
 
 def get_itu_dishes():
     urls = ['https://billboard.itu.dk/canteen-menu', 'https://itustudent.itu.dk/Campus-Life/Student-Life/Canteen-Menu']
@@ -38,6 +45,8 @@ def get_itu_dishes():
                 if 'infoscreen' in image_url.lower():
                     image_urls.append(image_url)
 
+            if testing:
+                print(image_urls)
 
             for image_url in image_urls:
                 r = requests.get(image_url)
@@ -45,37 +54,62 @@ def get_itu_dishes():
                 arr = np.asarray(bytearray(r.content), dtype=np.uint8)
                 img = cv2.imdecode(arr, -1) # 'Load it as it is'
 
-                # crop image
-                week = img[140:200, 170:380]
-                week_number = pytesseract.image_to_string(week, lang='eng')
+                # Get the image to a string using pytesseract
+                text = pytesseract.image_to_string(img, lang='eng').lower()
+
+                # Get the week number from the text string
+                regex = r'week\s*(\d+)' # Week followed by one or more digits
+                week_number = re.search(regex, text).group(1)
+
                 # remover everything that is not numbers
                 week_number = ''.join([x for x in week_number if x.isdigit()])
+                if testing:
+                    print(week_number)
 
                 # Check if week number is the same as the current week number
                 if int(week_number) != datetime.datetime.today().isocalendar()[1]:
                     continue
-                
-                start_x = [330, 650, 935, 1220, 1510]
-                width = 245
-                height = 140
-                warm_dish_y = 662
-                veggie_dish_y = 810
-                warm_dishes = []
-                veggie_dishes = []
-                for x in start_x:
-                    cv2.rectangle(img, (x, warm_dish_y), (x+width, warm_dish_y + height), (0, 255, 0), 2)
-                    # Extract warm dish with ocr from rectangle
-                    dish = img[warm_dish_y:warm_dish_y + height, x:x+width]
-                    text = pytesseract.image_to_string(dish, lang='eng')
-                    warm_dishes.append(text.strip().replace('\n', ' '))
-                    cv2.rectangle(img, (x, veggie_dish_y), (x+width, veggie_dish_y + height), (0, 255, 0), 2)
-                    # Extract veggie dish with ocr from rectangle
-                    dish = img[veggie_dish_y:veggie_dish_y + height, x:x+width]
-                    veggie_dish = pytesseract.image_to_string(dish, lang='eng')
-                    veggie_dishes.append(veggie_dish.strip().replace('\n', ' '))
-                return [("ITU - Warm Dishes", warm_dishes),("ITU - Warm Veggie", veggie_dishes)]
+
+                # Get all words in the image and their location
+                d = pytesseract.image_to_data(img, lang='eng', output_type=pytesseract.Output.DICT)
+                # remove everything that is not characters
+                d['text'] = [''.join([x for x in word if x.isalpha() or x == ' ']) for word in d['text']]
+                n_boxes = len(d['level'])
+                cordinates = {}
+                for i in range(n_boxes):
+                    (x, y, w, h, word) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i], d['text'][i])
+                    if word not in cordinates:
+                        cordinates[word.lower()] = (x, y, w, h)
+
+                week_days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+                dishes = []
+                for i in range(len(week_days)):
+                    day = week_days[i]
+                    if day not in cordinates:
+                        continue
+                    (x, y, w, h) = cordinates[day]
+                    # Expand w and h to the next day
+                    if i < len(week_days) - 1:
+                        (x2, y2, w2, h2) = cordinates[week_days[i + 1]]
+                        w = x2 - x
+                    else:
+                        # Expand to the bottom right corner
+                        w = img.shape[1] - x
+
+                    # Make a box underneath the day to the bottom of the image
+                    left, top, right, bottom = x - 10, y + h + 2, x + w - 2, img.shape[0] - 200
+                    if testing:
+                        cv2.rectangle(img, (left, top), (right, bottom), (0, 255, 0), 2)
+
+                    crop_img = img[top:bottom, left:right]
+                    # return the image bytes
+                    buffer = cv2.imencode('.jpg', crop_img)[1]
+                    dishes.append(buffer)
+
+                return [("ITU", dishes)]
         except Exception as e:
             print(e)
+            raise e
     return [("ITU", ["No menu available, failed in retrieving image from ITU's billboard"] * 5)]
 
 def get_kua_dishes():
@@ -125,9 +159,9 @@ def get_kua_dishes():
     return menus
 
 # Check if cli arg was -test
-if len(sys.argv) > 1 and sys.argv[1] == '-test':
+if testing:
     print(get_itu_dishes())
-    print(get_kua_dishes())
+    # print(get_kua_dishes())
     exit()
 
 # This example requires the 'message_content' intent.
@@ -138,15 +172,15 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-@tree.command(name = "map", description = "Show map of KUA", guild=discord.Object(id=576126976251920386)) 
+@tree.command(name = "map", description = "Show map of KUA") 
 async def get_map(interaction):
     await interaction.response.send_message("https://cdn.discordapp.com/attachments/1069320174118907934/1075711990493880390/kort_kua_kantinelokationer_25-08-22.png")
 
-@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA", guild=discord.Object(id=576126976251920386)) 
+@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA") 
 async def get_menu(interaction):
     # defer the response
     await interaction.response.defer()
-    dishes = get_itu_dishes() + get_kua_dishes()    
+    dishes = get_kua_dishes()    
     # Get the dish for the current day of the week
     day = datetime.datetime.today().weekday()
     
@@ -160,12 +194,17 @@ async def get_menu(interaction):
     for title, menu in dishes:
         msg.append(f"**{title}**\n{menu[day]}")
 
-    print(msg)
-    
-    await interaction.followup.send("\n\n".join(msg))
+    # Get the dishes from ITU's billboard
+    image_dishes = get_itu_dishes()
+    for title, menu in image_dishes:
+        msg.append(f"\n**{title}**")
+        # send the image dish for the current day of the week as an attachment
+        arr = io.BytesIO(menu[day])
+        file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
+        await interaction.followup.send("\n\n".join(msg), file=file)
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
-@tree.command(name = "submit", description = "Submit images to mads monster memes", guild=discord.Object(id=576126976251920386)) 
+@tree.command(name = "submit", description = "Submit images to mads monster memes") 
 async def submit_memes(interaction, image: discord.Attachment):
     await interaction.response.defer()
     
@@ -191,7 +230,7 @@ async def submit_memes(interaction, image: discord.Attachment):
 
 @client.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=576126976251920386))
+    await tree.sync()
     print("Ready!")
 
 client.run(os.getenv("KANTINE_TOKEN"))
