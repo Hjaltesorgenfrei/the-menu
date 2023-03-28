@@ -180,7 +180,7 @@ async def get_map(interaction):
 
 import typing
 
-@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA", guild=discord.Object(id=576126976251920386)) 
+@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA") 
 @app_commands.describe(day="The day of the week to get the menu for. Rangei is 0-4, where 0 is Monday and 4 is Friday.")
 # day is an optional argument int 
 async def get_menu(interaction, day: typing.Optional[int]):
@@ -247,7 +247,7 @@ async def submit_memes(interaction, image: discord.Attachment):
 
 @client.event
 async def on_ready():
-    await tree.sync(guild=client.get_guild(576126976251920386))
+    await tree.sync()
     print("Ready!")
 
 client.run(os.getenv("KANTINE_TOKEN"))
