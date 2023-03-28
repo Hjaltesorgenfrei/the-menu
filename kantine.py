@@ -160,7 +160,10 @@ def get_kua_dishes():
 
 # Check if cli arg was -test
 if testing:
-    print(get_itu_dishes())
+    for menu, dishes in get_itu_dishes():
+        print(menu)
+        for dish in dishes:
+            print(dish)
     # print(get_kua_dishes())
     exit()
 
@@ -192,11 +195,7 @@ async def get_menu(interaction, day: typing.Optional[int]):
         day = datetime.datetime.today().weekday()
         if datetime.datetime.now().hour >= 14:
             day += 1
-            if day > 4:
-                day = 0
-    else:
-        # clamp day to between 0 and 4
-        day = max(0, min(day, 4))
+    day = max(0, min(day, 4))
     if (week, day) not in cached_responses:
         dishes = get_kua_dishes()
         
