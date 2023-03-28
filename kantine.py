@@ -204,16 +204,18 @@ async def get_menu(interaction, day: typing.Optional[int]):
         today = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][day]
         msg = [f"**{today}" + u"'s Menu** 👨‍🍳"]
         for title, menu in dishes:
-            msg.append(f"**{title}**\n{menu[day]}")
+            if len(menu) > day:
+                msg.append(f"**{title}**\n{menu[day]}")
 
         # Get the dishes from ITU's billboard
         image_dishes = get_itu_dishes()
 
         for title, menu in image_dishes:
-            msg.append(f"**{title}**")
-            # send the image dish for the current day of the week as an attachment
-            response = "\n\n".join(msg)
-            cached_responses[(week, day)] = (response, menu[day])
+            if len(menu) > day:
+                msg.append(f"**{title}**")
+                # send the image dish for the current day of the week as an attachment
+                response = "\n\n".join(msg)
+                cached_responses[(week, day)] = (response, menu[day])
     response, bts = cached_responses[(week, day)]
     arr = io.BytesIO(bts)
     file = discord.File(arr, filename=f"menu.jpg")
