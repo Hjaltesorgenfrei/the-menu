@@ -172,36 +172,53 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+cached_responses = {}
+
 @tree.command(name = "map", description = "Show map of KUA") 
 async def get_map(interaction):
     await interaction.response.send_message("https://cdn.discordapp.com/attachments/1069320174118907934/1075711990493880390/kort_kua_kantinelokationer_25-08-22.png")
 
-@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA") 
-async def get_menu(interaction):
+import typing
+
+@tree.command(name = "menu", description = "Get Today's Menus at ITU and KUA", guild=discord.Object(id=576126976251920386)) 
+@app_commands.describe(day="The day of the week to get the menu for. Rangei is 0-4, where 0 is Monday and 4 is Friday.")
+# day is an optional argument int 
+async def get_menu(interaction, day: typing.Optional[int]):
     # defer the response
     await interaction.response.defer()
-    dishes = get_kua_dishes()    
-    # Get the dish for the current day of the week
-    day = datetime.datetime.today().weekday()
-    
-    #if it is after 14:00, get the menu for the next day
-    if datetime.datetime.now().hour >= 14:
-        day += 1
-        if day > 4:
-            day = 0
+    # check if week and day is in cache
+    week = datetime.datetime.today().isocalendar()[1]
+    if day is None:
+        day = datetime.datetime.today().weekday()
+        if datetime.datetime.now().hour >= 14:
+            day += 1
+            if day > 4:
+                day = 0
+    else:
+        # clamp day to between 0 and 4
+        day = max(0, min(day, 4))
+    if (week, day) not in cached_responses:
+        dishes = get_kua_dishes()
+        
+        #if it is after 14:00, get the menu for the next day
 
-    msg = [u"**Today's Menu** 👨‍🍳"]
-    for title, menu in dishes:
-        msg.append(f"**{title}**\n{menu[day]}")
+        today = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][day]
+        msg = [f"**{today}" + u"'s Menu** 👨‍🍳"]
+        for title, menu in dishes:
+            msg.append(f"**{title}**\n{menu[day]}")
 
-    # Get the dishes from ITU's billboard
-    image_dishes = get_itu_dishes()
-    for title, menu in image_dishes:
-        msg.append(f"**{title}**")
-        # send the image dish for the current day of the week as an attachment
-        arr = io.BytesIO(menu[day])
-        file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
-        await interaction.followup.send("\n\n".join(msg), file=file)
+        # Get the dishes from ITU's billboard
+        image_dishes = get_itu_dishes()
+
+        for title, menu in image_dishes:
+            msg.append(f"**{title}**")
+            # send the image dish for the current day of the week as an attachment
+            arr = io.BytesIO(menu[day])
+            file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
+            response = "\n\n".join(msg)
+            cached_responses[(week, day)] = (response, file)
+    response, file = cached_responses[(week, day)]
+    await interaction.followup.send(response, file=file)
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
 @tree.command(name = "submit", description = "Submit images to mads monster memes") 
@@ -230,7 +247,7 @@ async def submit_memes(interaction, image: discord.Attachment):
 
 @client.event
 async def on_ready():
-    await tree.sync()
+    await tree.sync(guild=client.get_guild(576126976251920386))
     print("Ready!")
 
 client.run(os.getenv("KANTINE_TOKEN"))
