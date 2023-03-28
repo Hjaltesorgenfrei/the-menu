@@ -213,7 +213,6 @@ async def get_menu(interaction, day: typing.Optional[int]):
         for title, menu in image_dishes:
             msg.append(f"**{title}**")
             # send the image dish for the current day of the week as an attachment
-            
             response = "\n\n".join(msg)
             cached_responses[(week, day)] = (response, menu[day])
     response, bts = cached_responses[(week, day)]
