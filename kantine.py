@@ -126,6 +126,7 @@ def get_kua_dishes():
     menus = []
 
     uge_dage = ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag']
+    lower_case_uge_dage = [x.lower() for x in uge_dage]
 
     for block in content_blocks:
         content = block.text.replace(u'\xa0', u' ').strip().split('\n')
@@ -142,7 +143,7 @@ def get_kua_dishes():
         menu = []
         dish = []
         while index < len(content):
-            if content[index] in uge_dage:
+            if content[index].lower() in lower_case_uge_dage:
                 index += 1
                 menu.append(" ".join(dish).strip())
                 dish = []
@@ -161,10 +162,14 @@ def get_kua_dishes():
 # Check if cli arg was -test
 if testing:
     for menu, dishes in get_itu_dishes():
+        break
         print(menu)
         for dish in dishes:
             print(dish)
-    # print(get_kua_dishes())
+    for menu, dishes in get_kua_dishes():
+        print(menu, len(dishes))
+        for dish in dishes:
+            print(dish)
     exit()
 
 # This example requires the 'message_content' intent.
