@@ -214,10 +214,10 @@ async def get_menu(interaction, day: typing.Optional[int]):
             msg.append(f"**{title}**")
             # send the image dish for the current day of the week as an attachment
             arr = io.BytesIO(menu[day])
-            file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
             response = "\n\n".join(msg)
-            cached_responses[(week, day)] = (response, file)
-    response, file = cached_responses[(week, day)]
+            cached_responses[(week, day)] = (response, arr)
+    response, arr = cached_responses[(week, day)]
+    file = discord.File(arr, filename=f"{title}_menu_{day}.jpg")
     await interaction.followup.send(response, file=file)
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
