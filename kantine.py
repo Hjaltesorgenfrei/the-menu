@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pytesseract
 import datetime
+import sys
 import os
 from dotenv import load_dotenv
 
@@ -123,7 +124,11 @@ def get_kua_dishes():
 
     return menus
 
-
+# Check if cli arg was -test
+if len(sys.argv) > 1 and sys.argv[1] == '-test':
+    print(get_itu_dishes())
+    print(get_kua_dishes())
+    exit()
 
 # This example requires the 'message_content' intent.
 
