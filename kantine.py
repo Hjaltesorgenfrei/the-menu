@@ -183,8 +183,6 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-cached_responses = {}
-
 @tree.command(name = "map", description = "Show map of KUA") 
 async def get_map(interaction):
     await interaction.response.send_message("https://cdn.discordapp.com/attachments/1069320174118907934/1075711990493880390/kort_kua_kantinelokationer_25-08-22.png")
@@ -204,30 +202,27 @@ async def get_menu(interaction, day: typing.Optional[int]):
         if datetime.datetime.now().hour >= 14:
             day += 1
     day = max(0, min(day, 4))
-    if (week, day) not in cached_responses:
-        dishes = get_kua_dishes()
-        
-        #if it is after 14:00, get the menu for the next day
+    dishes = get_kua_dishes()
+    
+    #if it is after 14:00, get the menu for the next day
 
-        today = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][day]
-        msg = [f"**{today}" + u"'s Menu** 👨‍🍳"]
-        for title, menu in dishes:
-            if len(menu) > day:
-                msg.append(f"**{title}**\n{menu[day]}")
+    today = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][day]
+    msg = [f"**{today}" + u"'s Menu** 👨‍🍳"]
+    for title, menu in dishes:
+        if len(menu) > day:
+            msg.append(f"**{title}**\n{menu[day]}")
 
-        # Get the dishes from ITU's billboard
-        image_dishes = get_itu_dishes()
+    # Get the dishes from ITU's billboard
+    image_dishes = get_itu_dishes()
 
-        for title, menu in image_dishes:
-            if len(menu) > day:
-                msg.append(f"**{title}**")
-                # send the image dish for the current day of the week as an attachment
-                response = "\n\n".join(msg)
-                cached_responses[(week, day)] = (response, menu[day])
-    response, bts = cached_responses[(week, day)]
-    arr = io.BytesIO(bts)
-    file = discord.File(arr, filename=f"menu.jpg")
-    await interaction.followup.send(response, file=file)
+    for title, menu in image_dishes:
+        if len(menu) > day and len(menu[day]) > 10:
+            msg.append(f"**{title}**")
+            # send the image dish for the current day of the week as an attachment
+            response = "\n\n".join(msg)
+            arr = io.BytesIO(menu[day])
+            file = discord.File(arr, filename=f"menu.jpg")
+            await interaction.followup.send(response, file=file)
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
 @tree.command(name = "submit", description = "Submit images to mads monster memes") 
