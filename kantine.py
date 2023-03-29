@@ -113,7 +113,7 @@ def get_itu_dishes():
             import traceback
             traceback.print_exc()
             continue
-    return [("ITU", ["No menu available, failed in retrieving image from ITU's billboard"] * 5)]
+    return [("ITU", [] * 5)]
 
 def get_kua_dishes():
     # Download web page
