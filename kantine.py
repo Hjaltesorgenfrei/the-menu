@@ -49,10 +49,13 @@ def get_itu_dishes():
                 print(image_urls)
 
             for image_url in image_urls:
-                r = requests.get(image_url)
-                r.raise_for_status()
-                arr = np.asarray(bytearray(r.content), dtype=np.uint8)
-                img = cv2.imdecode(arr, -1) # 'Load it as it is'
+                try:
+                    r = requests.get(image_url)
+                    r.raise_for_status()
+                    arr = np.asarray(bytearray(r.content), dtype=np.uint8)
+                    img = cv2.imdecode(arr, -1) # 'Load it as it is'
+                except Exception as e:
+                    continue
 
                 # Get the image to a string using pytesseract
                 text = pytesseract.image_to_string(img, lang='eng').lower()
@@ -212,17 +215,22 @@ async def get_menu(interaction, day: typing.Optional[int]):
         if len(menu) > day:
             msg.append(f"**{title}**\n{menu[day]}")
 
-    # Get the dishes from ITU's billboard
-    image_dishes = get_itu_dishes()
+    try:
+        # Get the dishes from ITU's billboard
+        image_dishes = get_itu_dishes()
 
-    for title, menu in image_dishes:
-        if len(menu) > day and len(menu[day]) > 10:
-            msg.append(f"**{title}**")
-            # send the image dish for the current day of the week as an attachment
-            response = "\n\n".join(msg)
-            arr = io.BytesIO(menu[day])
-            file = discord.File(arr, filename=f"menu.jpg")
-            await interaction.followup.send(response, file=file)
+        for title, menu in image_dishes:
+            if len(menu) > day and len(menu[day]) > 10:
+                msg.append(f"**{title}**")
+                # send the image dish for the current day of the week as an attachment
+                response = "\n\n".join(msg)
+                arr = io.BytesIO(menu[day])
+                file = discord.File(arr, filename=f"menu.jpg")
+                await interaction.followup.send(response, file=file)
+    except Exception as e:
+        response = "\n\n".join(msg)
+        await interaction.followup.send(response)
+
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
 @tree.command(name = "submit", description = "Submit images to mads monster memes") 
