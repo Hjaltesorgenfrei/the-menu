@@ -62,7 +62,10 @@ def get_itu_dishes():
 
                 # Get the week number from the text string
                 regex = r'week\s*(\d+)' # Week followed by one or more digits
-                week_number = re.search(regex, text).group(1)
+                week_number_result = re.search(regex, text)
+                if not week_number_result:
+                    continue
+                week_number = week_number_result.group(1)
 
                 # remover everything that is not numbers
                 week_number = ''.join([x for x in week_number if x.isdigit()])
