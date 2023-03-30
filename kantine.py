@@ -171,7 +171,6 @@ def get_kua_dishes():
 # Check if cli arg was -test
 if testing:
     for menu, dishes in get_itu_dishes():
-        break
         print(menu)
         for dish in dishes:
             print(dish)
@@ -230,9 +229,14 @@ async def get_menu(interaction, day: typing.Optional[int]):
                 arr = io.BytesIO(menu[day])
                 file = discord.File(arr, filename=f"menu.jpg")
                 await interaction.followup.send(response, file=file)
+                return
     except Exception as e:
-        response = "\n\n".join(msg)
-        await interaction.followup.send(response)
+        print(e)
+        # print stack trace
+        import traceback
+        traceback.print_exc()
+    response = "\n\n".join(msg)
+    await interaction.followup.send(response)
 
 
 # Make a command that takes all images in the message and sends them to the mads monster memes channel
